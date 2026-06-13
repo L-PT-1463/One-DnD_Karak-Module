@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Initiative Tracker</title>
+
+<style>
+    body {
+        font-family: Arial, sans-serif;
+        padding: 20px;
+        background: #f4f4f4;
+    }
+
+    .player-card {
+        background: white;
+        padding: 15px;
+        margin: 15px 0;
+        border-radius: 8px;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    }
+
+    .initiative-row {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        flex-wrap: wrap;
+    }
+
+    select,
+    input,
+    button {
+        margin: 5px;
+        padding: 5px;
+    }
+
+    .monster-list {
+        display: flex;
+        gap: 5px;
+        flex-wrap: wrap;
+        align-items: center;
+    }
+
+    .monster-tag {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        background: #dcecff;
+        padding: 4px 8px;
+        border-radius: 4px;
+    }
+
+    .monster-tag input {
+        width: 60px;
+    }
+
+    .preview {
+        margin-top: 10px;
+        padding: 10px;
+        background: #f8f8f8;
+        border-radius: 5px;
+        font-weight: bold;
+    }
+
+    .side {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+    }
+
+    .monster-picker {
+        display: flex;
+        gap: 5px;
+        align-items: center;
+        margin-left: 5px;
+    }
+</style>
+</head>
+
+<body>
+
+<h1>One D&D: Karak - Initiative Tracker</h1>
+
+<label>
+    Number of Players:
+    <select id="playerCount">
+        <option value="3">3</option>
+        <option value="4">4</option>
+        <option value="5">5</option>
+    </select>
+</label>
+
+<button onclick="generatePlayers()">Generate Players</button>
+
+<div id="playersContainer"></div>
+
+<script>
+
+// =========================
+// MONSTER DATABASE
+// =========================
+const monsters = [
+    { name: "Goblin", hp: 10 },
+    { name: "Orc", hp: 20 },
+    { name: "Skeleton", hp: 15 },
+    { name: "Dragon", hp: 100 }
+];
+
+// =========================
+// PLAYER DATABASE (NEW)
+// =========================
+const players = [
+    { name: "Fighter" },
+    { name: "Wizard" },
+    { name: "Rogue" },
+    { name: "Cleric" },
+    { name: "Barbarian" },
+    { name: "Ranger" }
+];
+
+let monsterUID = 0;
+
+// =========================
+// GENERATE UI
+// =========================
+function generatePlayers() {
+
+    const count = parseInt(
+        document.getElementById("playerCount").value
+    );
+
+    const container =
+        document.getElementById("playersContainer");
+
+    container.innerHTML = "";
+
+    for (let i = 1; i <= count; i++) {
+
+        const card = document.createElement("div");
+        card.className = "player-card";
+
+        card.innerHTML = `
+            <div class="initiative-row">
+
+                <!-- BEFORE SIDE -->
+                <div class="side">
+                    <button onclick="showMonsterPicker(${i}, 'before')">+</button>
+                    <div id="beforeMonsterList${i}" class="monster-list"></div>
+                </div>
+
+                >
+
+                <!-- PLAYER -->
+                <div>
+                    <select id="playerName${i}" onchange="updatePreview(${i})">
+                        ${players.map(p =>
+                            `<option value="${p.name}">${p.name}</option>`
+                        ).join("")}
+                    </select>
+                </div>
+
+                >
+
+                <!-- AFTER SIDE -->
+                <div class="side">
+                    <div id="afterMonsterList${i}" class="monster-list"></div>
+                    <button onclick="showMonsterPicker(${i}, 'after')">+</button>
+                </div>
+
+            </div>
+
+            <div class="preview" id="preview${i}">
+                Ready
+            </div>
+        `;
+
+        container.appendChild(card);
+    }
+}
+
+// =========================
+// MONSTER PICKER
+// =========================
+function showMonsterPicker(playerNumber, position) {
+
+    const list = document.getElementById(
+        `${position}MonsterList${playerNumber}`
+    );
+
+    if (document.getElementById(`picker-${playerNumber}-${position}`)) return;
+
+    const picker = document.createElement("div");
+    picker.id = `picker-${playerNumber}-${position}`;
+    picker.className = "monster-picker";
+
+    picker.innerHTML = `
+        <select>
+            ${monsters.map(m =>
+                `<option value="${m.name}">${m.name}</option>`
+            ).join("")}
+        </select>
+        <button>OK</button>
+    `;
+
+    const select = picker.querySelector("select");
+    const button = picker.querySelector("button");
+
+    button.onclick = () => {
+        addMonster(playerNumber, position, select.value);
+        picker.remove();
+    };
+
+    list.appendChild(picker);
+}
+
+// =========================
+// ADD MONSTER
+// =========================
+function addMonster(playerNumber, position, monsterName) {
+
+    const monster = monsters.find(m => m.name === monsterName);
+
+    const list = document.getElementById(
+        `${position}MonsterList${playerNumber}`
+    );
+
+    const uid = monsterUID++;
+
+    const tag = document.createElement("div");
+    tag.className = "monster-tag";
+    tag.dataset.uid = uid;
+
+    tag.innerHTML = `
+        ${monster.name}
+        <input type="number" value="${monster.hp}"
+            onchange="updatePreview(${playerNumber})"
+        >
+    `;
+
+    list.appendChild(tag);
+
+    updatePreview(playerNumber);
+}
+
+// =========================
+// UPDATE PREVIEW
+// =========================
+function updatePreview(playerNumber) {
+
+    const beforeTags = document.querySelectorAll(
+        `#beforeMonsterList${playerNumber} .monster-tag`
+    );
+
+    const afterTags = document.querySelectorAll(
+        `#afterMonsterList${playerNumber} .monster-tag`
+    );
+
+    const beforeText = [...beforeTags]
+        .map(tag => {
+            const hp = tag.querySelector("input").value;
+            return `${tag.childNodes[0].textContent.trim()}(${hp})`;
+        })
+        .join(" ");
+
+    const afterText = [...afterTags]
+        .map(tag => {
+            const hp = tag.querySelector("input").value;
+            return `${tag.childNodes[0].textContent.trim()}(${hp})`;
+        })
+        .join(" ");
+
+    const player =
+        document.getElementById(`playerName${playerNumber}`).value;
+
+    document.getElementById(`preview${playerNumber}`).textContent =
+        `${beforeText || "None"} > ${player} > ${afterText || "None"}`;
+}
+
+</script>
+
+</body>
+</html>

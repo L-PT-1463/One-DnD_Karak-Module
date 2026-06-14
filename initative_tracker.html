@@ -3,17 +3,23 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Initiative Tracker</title>
+    <title>Karak Initiative Tracker</title>
+    <link rel="icon" type="image/x-icon" href="images\misc\logo.png">
 
 <style>
     body {
-        font-family: Arial, sans-serif;
+        font-family: Georgia, "Times New Roman", serif;
         padding: 20px;
-        background: #f4f4f4;
+        background: #e9e9d9;
+    }
+
+    h1, h2, h3, h4, h5, h6 {
+        font-family: "Trebuchet MS", sans-serif;
+        color: #e9e9d9;
     }
 
     .player-card {
-        background: white;
+        background: #ceb348;
         padding: 15px;
         margin: 15px 0;
         border-radius: 8px;
@@ -30,6 +36,7 @@
     select,
     input,
     button {
+        font-family: inherit;
         margin: 5px;
         padding: 5px;
     }
@@ -44,22 +51,35 @@
     .monster-tag {
         display: flex;
         align-items: center;
-        gap: 5px;
-        background: #dcecff;
-        padding: 4px 8px;
+        gap: 6px;
+        background: #e9e9d9;
+        padding: 6px 10px;
+        border-radius: 6px;
+    }
+
+    .hp-max {
+        font-size: 13px;
+        opacity: 0.8;
+    }
+
+    .kill-btn {
+        background: #601a1a;
+        color: white;
+        border: none;
         border-radius: 4px;
+        padding: 2px 6px;
+        cursor: pointer;
+        font-size: 12px;
     }
 
-    .monster-tag input {
-        width: 60px;
-    }
-
-    .preview {
-        margin-top: 10px;
-        padding: 10px;
-        background: #f8f8f8;
-        border-radius: 5px;
-        font-weight: bold;
+    .flee-btn {
+        background: #6382b4;
+        color: white;
+        border: none;
+        border-radius: 4px;
+        padding: 2px 6px;
+        cursor: pointer;
+        font-size: 12px;
     }
 
     .side {
@@ -72,25 +92,70 @@
         display: flex;
         gap: 5px;
         align-items: center;
-        margin-left: 5px;
     }
+
+    .top-controls {
+        margin-bottom: 15px;
+        display: flex;
+        gap: 15px;
+        align-items: center;
+        flex-wrap: wrap;
+    }
+
+/* =========================
+STICKY HEADER
+========================= */
+
+.site-header {
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+
+    background: #601a1a;
+    padding: 10px 0 15px 0;
+    margin: -20px -20px 20px -20px;
+
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+
+    box-shadow: 0 2px 5px rgba(28, 26, 19, 0.1);
+}
+
+.site-header img {
+    max-height: 80px;
+    width: auto;
+}
+
+.site-header h1 {
+    margin: 8px 0 0 0;
+    font-family: "Trebuchet MS", sans-serif;
+    text-align: center;
+}
 </style>
 </head>
 
 <body>
 
-<h1>One D&D: Karak - Initiative Tracker</h1>
+<header class="site-header">
+    <img src="images\misc\logo_complete.png" alt="Karak Logo">
+    <h1>One D&D: Karak - Initiative Tracker</h1>
 
-<label>
-    Number of Players:
-    <select id="playerCount">
-        <option value="3">3</option>
-        <option value="4">4</option>
-        <option value="5">5</option>
-    </select>
-</label>
+</header>
 
-<button onclick="generatePlayers()">Generate Players</button>
+<div class="top-controls">
+
+    <label>
+        Number of Players:
+        <select id="playerCount">
+            <option value="3">3</option>
+            <option value="4">4</option>
+            <option value="5">5</option>
+        </select>
+    </label>
+
+    <button onclick="generatePlayers()">Generate Players</button>
+</div>
 
 <div id="playersContainer"></div>
 
@@ -100,37 +165,71 @@
 // MONSTER DATABASE
 // =========================
 const monsters = [
-    { name: "Goblin", hp: 10 },
-    { name: "Orc", hp: 20 },
-    { name: "Skeleton", hp: 15 },
-    { name: "Dragon", hp: 100 }
+    { name: "Rat", hp: 1, canFlee: true },
+    { name: "Skeleton Turnkey", hp: 1, canFlee: true },
+    { name: "Skeleton Warrior", hp: 1, canFlee: false },
+    { name: "Skeleton King", hp: 1, canFlee: false },
+    { name: "Spider", hp: 1, canFlee: false },
+    { name: "Mummy", hp: 1, canFlee: false },
+    { name: "The Fallen", hp: 1, canFlee: false },
+    { name: "The Dragon", hp: 1, canFlee: false }
 ];
 
 // =========================
-// PLAYER DATABASE (NEW)
+// PLAYER DATABASE
 // =========================
-const players = [
-    { name: "Fighter" },
-    { name: "Wizard" },
-    { name: "Rogue" },
-    { name: "Cleric" },
-    { name: "Barbarian" },
-    { name: "Ranger" }
+const playersBase = [
+    { name: "Aderyn"},
+    { name: "Horan"},
+    { name: "Victorius"},
+
+    { name: "Argentus"},
+    { name: "Lord Xanurs"},
+    { name: "Taia"},
+
+    { name: "Elspeth"},
+    { name: "Hannah"},
+    { name: "Kirma"},
+    { name: "Valduk"},
+    
+    { name: "Baron Markul"},
+    { name: "Doctor Sidhar"},
+    { name: "Lady Lorraine"}
 ];
 
 let monsterUID = 0;
+
+// =========================
+// BACKEND MONSTER STATE
+// =========================
+const monsterDB = {};
+
+// =========================
+// CREATE INSTANCE
+// =========================
+function createMonster(name) {
+
+    const base = monsters.find(m => m.name === name);
+    const id = monsterUID++;
+
+    monsterDB[id] = {
+        id,
+        name: base.name,
+        hp: base.hp,
+        maxHp: base.hp,
+        canFlee: base.canFlee
+    };
+
+    return id;
+}
 
 // =========================
 // GENERATE UI
 // =========================
 function generatePlayers() {
 
-    const count = parseInt(
-        document.getElementById("playerCount").value
-    );
-
-    const container =
-        document.getElementById("playersContainer");
+    const count = parseInt(document.getElementById("playerCount").value);
+    const container = document.getElementById("playersContainer");
 
     container.innerHTML = "";
 
@@ -142,35 +241,32 @@ function generatePlayers() {
         card.innerHTML = `
             <div class="initiative-row">
 
-                <!-- BEFORE SIDE -->
                 <div class="side">
-                    <button onclick="showMonsterPicker(${i}, 'before')">+</button>
-                    <div id="beforeMonsterList${i}" class="monster-list"></div>
+                    <button onclick="openPicker(${i}, 'before')">+</button>
+                    <div id="beforeList${i}" class="monster-list"></div>
                 </div>
 
                 >
 
-                <!-- PLAYER -->
                 <div>
-                    <select id="playerName${i}" onchange="updatePreview(${i})">
-                        ${players.map(p =>
+                    <select id="player${i}">
+                        ${playersBase.map(p =>
                             `<option value="${p.name}">${p.name}</option>`
                         ).join("")}
                     </select>
+
+                    <button class="flee-btn" onclick="playerFlee(${i})">
+                        Flee
+                    </button>
                 </div>
 
                 >
 
-                <!-- AFTER SIDE -->
                 <div class="side">
-                    <div id="afterMonsterList${i}" class="monster-list"></div>
-                    <button onclick="showMonsterPicker(${i}, 'after')">+</button>
+                    <div id="afterList${i}" class="monster-list"></div>
+                    <button onclick="openPicker(${i}, 'after')">+</button>
                 </div>
 
-            </div>
-
-            <div class="preview" id="preview${i}">
-                Ready
             </div>
         `;
 
@@ -179,34 +275,51 @@ function generatePlayers() {
 }
 
 // =========================
-// MONSTER PICKER
+// PICKER
 // =========================
-function showMonsterPicker(playerNumber, position) {
+function openPicker(playerNumber, side) {
 
-    const list = document.getElementById(
-        `${position}MonsterList${playerNumber}`
-    );
-
-    if (document.getElementById(`picker-${playerNumber}-${position}`)) return;
+    const list = document.getElementById(`${side}List${playerNumber}`);
 
     const picker = document.createElement("div");
-    picker.id = `picker-${playerNumber}-${position}`;
     picker.className = "monster-picker";
+
+    const existing = Object.values(monsterDB);
 
     picker.innerHTML = `
         <select>
+            <option value="new">+ New Monster</option>
+            <option disabled>────────────</option>
             ${monsters.map(m =>
-                `<option value="${m.name}">${m.name}</option>`
+                `<option value="tmpl:${m.name}">${m.name}</option>`
+            ).join("")}
+            <option disabled>────────────</option>
+            ${existing.map(m =>
+                `<option value="id:${m.id}">${m.name} (#${m.id})</option>`
             ).join("")}
         </select>
         <button>OK</button>
     `;
 
     const select = picker.querySelector("select");
-    const button = picker.querySelector("button");
+    const btn = picker.querySelector("button");
 
-    button.onclick = () => {
-        addMonster(playerNumber, position, select.value);
+    btn.onclick = () => {
+
+        let id;
+
+        if (select.value === "new") {
+            id = createMonster("Rat");
+        }
+        else if (select.value.startsWith("tmpl:")) {
+            const name = select.value.split(":")[1];
+            id = createMonster(name);
+        }
+        else {
+            id = parseInt(select.value.replace("id:", ""));
+        }
+
+        addMonsterUI(playerNumber, side, id);
         picker.remove();
     };
 
@@ -214,66 +327,145 @@ function showMonsterPicker(playerNumber, position) {
 }
 
 // =========================
-// ADD MONSTER
+// ADD TO UI
 // =========================
-function addMonster(playerNumber, position, monsterName) {
+function addMonsterUI(playerNumber, side, id) {
 
-    const monster = monsters.find(m => m.name === monsterName);
-
-    const list = document.getElementById(
-        `${position}MonsterList${playerNumber}`
-    );
-
-    const uid = monsterUID++;
+    const list = document.getElementById(`${side}List${playerNumber}`);
+    const m = monsterDB[id];
 
     const tag = document.createElement("div");
     tag.className = "monster-tag";
-    tag.dataset.uid = uid;
+    tag.dataset.id = id;
+    tag.dataset.player = playerNumber;
 
     tag.innerHTML = `
-        ${monster.name}
-        <input type="number" value="${monster.hp}"
-            onchange="updatePreview(${playerNumber})"
-        >
+        <span>${m.name} (#${m.id})</span>
+
+        <input type="number"
+            min="0"
+            max="${m.maxHp}"
+            value="${m.hp}"
+            oninput="updateHP(${id}, this.value)"
+        />
+
+        <span class="hp-max">/ ${m.maxHp}</span>
     `;
 
     list.appendChild(tag);
 
-    updatePreview(playerNumber);
+    updateButtons(id);
 }
 
 // =========================
-// UPDATE PREVIEW
+// UPDATE HP
 // =========================
-function updatePreview(playerNumber) {
+function updateHP(id, value) {
 
-    const beforeTags = document.querySelectorAll(
-        `#beforeMonsterList${playerNumber} .monster-tag`
-    );
+    const m = monsterDB[id];
+    if (!m) return;
 
-    const afterTags = document.querySelectorAll(
-        `#afterMonsterList${playerNumber} .monster-tag`
-    );
+    let hp = parseInt(value);
+    if (isNaN(hp)) hp = 0;
 
-    const beforeText = [...beforeTags]
-        .map(tag => {
-            const hp = tag.querySelector("input").value;
-            return `${tag.childNodes[0].textContent.trim()}(${hp})`;
-        })
-        .join(" ");
+    hp = Math.max(0, Math.min(hp, m.maxHp));
 
-    const afterText = [...afterTags]
-        .map(tag => {
-            const hp = tag.querySelector("input").value;
-            return `${tag.childNodes[0].textContent.trim()}(${hp})`;
-        })
-        .join(" ");
+    m.hp = hp;
 
-    const player =
-        document.getElementById(`playerName${playerNumber}`).value;
+    document.querySelectorAll(`[data-id="${id}"] input`)
+        .forEach(i => i.value = hp);
 
-    document.getElementById(`preview${playerNumber}`).textContent =
-        `${beforeText || "None"} > ${player} > ${afterText || "None"}`;
+    updateButtons(id);
+}
+
+// =========================
+// BUTTON LOGIC
+// =========================
+function updateButtons(id) {
+
+    const m = monsterDB[id];
+    if (!m) return;
+
+    document.querySelectorAll(`[data-id="${id}"]`).forEach(tag => {
+
+        let killBtn = tag.querySelector(".kill-btn");
+        let fleeBtn = tag.querySelector(".flee-btn");
+
+        // DEAD → KILL ONLY
+        if (m.hp <= 0) {
+
+            if (fleeBtn) fleeBtn.remove();
+
+            if (!killBtn) {
+                killBtn = document.createElement("button");
+                killBtn.className = "kill-btn";
+                killBtn.textContent = "Kill";
+                killBtn.onclick = () => kill(id);
+                tag.appendChild(killBtn);
+            }
+        }
+
+        // ALIVE → FLEE ONLY (if allowed)
+        else {
+
+            if (killBtn) killBtn.remove();
+
+            if (m.canFlee) {
+                if (!fleeBtn) {
+                    fleeBtn = document.createElement("button");
+                    fleeBtn.className = "flee-btn";
+                    fleeBtn.textContent = "Flee";
+                    fleeBtn.onclick = () => flee(id);
+                    tag.appendChild(fleeBtn);
+                }
+            } else {
+                if (fleeBtn) fleeBtn.remove();
+            }
+        }
+    });
+}
+
+// =========================
+// KILL
+// =========================
+function kill(id) {
+
+    delete monsterDB[id];
+
+    document.querySelectorAll(`[data-id="${id}"]`)
+        .forEach(el => el.remove());
+}
+
+// =========================
+// PLAYER FLEE
+// =========================
+function playerFlee(playerNumber) {
+
+    const monsterIds = new Set();
+
+    document
+        .querySelectorAll(`[data-player="${playerNumber}"]`)
+        .forEach(tag => {
+
+            const id = parseInt(tag.dataset.id);
+
+            monsterIds.add(id);
+
+            tag.remove();
+        });
+
+    monsterIds.forEach(id => {
+
+        const m = monsterDB[id];
+
+        if (!m) return;
+
+        m.hp = m.maxHp;
+
+        document
+            .querySelectorAll(`[data-id="${id}"]`)
+            .forEach(el => el.remove());
+    });
 }
 
 </script>

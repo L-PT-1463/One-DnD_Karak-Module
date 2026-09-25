@@ -165,14 +165,14 @@ STICKY HEADER
 // MONSTER DATABASE
 // =========================
 const monsters = [
-    { name: "Rat", hp: 1, canFlee: true },
-    { name: "Skeleton Warrior", hp: 1, canFlee: false },
-    { name: "Skeleton King", hp: 1, canFlee: false },
-    { name: "Mummy", hp: 1, canFlee: false },
-    { name: "Spider", hp: 1, canFlee: false },
-    { name: "Skeleton Turnkey", hp: 1, canFlee: true },
-    { name: "The Fallen", hp: 1, canFlee: false },
-    { name: "The Dragon", hp: 1, canFlee: false }
+    { name: "Rat", hp: 8, canFlee: true },
+    { name: "Skeleton Warrior", hp: 20, canFlee: false },
+    { name: "Skeleton King", hp: 25, canFlee: false },
+    { name: "Mummy", hp: 20, canFlee: false },
+    { name: "Spider", hp: 12, canFlee: false },
+    { name: "Skeleton Turnkey", hp: 15, canFlee: true },
+    { name: "The Fallen", hp: 25, canFlee: false },
+    { name: "The Dragon", hp: 50, canFlee: false }
 ];
 
 // =========================
@@ -437,35 +437,29 @@ function kill(id) {
 }
 
 // =========================
+// MONSTER FLEE
+// =========================
+function flee(id) {
+
+    const m = monsterDB[id];
+
+    if (!m) return;
+
+    m.hp = m.maxHp;
+
+    document
+        .querySelectorAll(`[data-id="${id}"]`)
+        .forEach(el => el.remove());
+}
+
+// =========================
 // PLAYER FLEE
 // =========================
 function playerFlee(playerNumber) {
 
-    const monsterIds = new Set();
-
     document
         .querySelectorAll(`[data-player="${playerNumber}"]`)
-        .forEach(tag => {
-
-            const id = parseInt(tag.dataset.id);
-
-            monsterIds.add(id);
-
-            tag.remove();
-        });
-
-    monsterIds.forEach(id => {
-
-        const m = monsterDB[id];
-
-        if (!m) return;
-
-        m.hp = m.maxHp;
-
-        document
-            .querySelectorAll(`[data-id="${id}"]`)
-            .forEach(el => el.remove());
-    });
+        .forEach(tag => tag.remove());
 }
 
 </script>
